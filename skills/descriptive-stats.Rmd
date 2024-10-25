@@ -1,6 +1,5 @@
 ---
 title: "Skills: Describing variables"
-subtitle: "Week 2"
 output: 
   rmdformats::readthedown:
     toc_depth: 3
@@ -18,7 +17,7 @@ For the R examples, I'll be using the following packages and load a dataset
 called `my_data`.
 
 
-```{r, echo=FALSE, message=FALSE, results='hide'}
+```{r, message=FALSE, results='hide', warning=FALSE}
 library(tidyverse)
 library(knitr)
 library(here)
@@ -220,7 +219,7 @@ get the 99-percent confidence level.
 
 ```{r}
 t.test(my_data$price,
-       conf.level = 0.99)
+       conf.level = 0.50)
 ```
 
 ### Excel
