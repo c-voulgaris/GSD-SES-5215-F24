@@ -23,15 +23,9 @@ library(knitr)
 library(here)
 
 my_data <- here("datasets",
-             "example2.csv") |>
-  read_csv() |>
-  select(-id)
+             "test.csv") |>
+  read_csv() 
 
-colnames(my_data) <- c("train_dist",
-                       "park_dist",
-                       "hosp_dist",
-                       "school",
-                       "price")
 ```
 
 
@@ -49,7 +43,7 @@ central tendency that is sensitive to outliers.
 The function in R that will calculate a mean is called `mean()`.
 
 ```{r}
-mean(my_data$price)
+mean(my_data$`sales-price`)
 ```
 ### Excel
 
@@ -72,7 +66,7 @@ data are. It is sensitive to outliers.
 In R, the function `sd()` will calculate a standard deviation.
 
 ```{r}
-sd(my_data$price)
+sd(my_data$`sales-price`)
 ```
 
 
@@ -106,13 +100,13 @@ this range.
 In R, you can calculate a percentile with the function `quantile()`. The median is the 50th percentile.
 
 ```{r}
-quantile(my_data$price, probs = 0.5)
+quantile(my_data$`sales-price`, probs = 0.5)
 ```
 
 You can also calculate the 25th and 75th percentiles.
 
 ```{r}
-quartiles <- quantile(my_data$price, probs = c(0.25, 0.75))
+quartiles <- quantile(my_data$`sales-price`, probs = c(0.25, 0.75))
 
 quartiles
 ```
@@ -148,14 +142,14 @@ In R, you can use the `table()` function to get the number of observations
 in each category.
 
 ```{r}
-table(my_data$school)
+table(my_data$building)
 ```
 
 And then you can express these as proportions by dividing those numbers
 by the number of observations.
 
 ```{r}
-table(my_data$school) / nrow(my_data)
+table(my_data$building) / nrow(my_data)
 ```
 
 ### Excel
@@ -210,7 +204,7 @@ calculating a confidence interval.
 Here is how you would do a one-sample t-test in R.
 
 ```{r}
-t.test(my_data$price)
+t.test(my_data$`sales-price`)
 ```
 
 By default, the `t.test` function returns a 95-percent confidence interval,
@@ -218,8 +212,8 @@ but you can also specify other confidence levels. Here is how you would
 get the 99-percent confidence level.
 
 ```{r}
-t.test(my_data$price,
-       conf.level = 0.50)
+t.test(my_data$`sales-price`,
+       conf.level = 0.99)
 ```
 
 ### Excel
@@ -273,7 +267,7 @@ In R, you use prop.test rather than t.test when you want to find the
 confidence interval for a proportion.
 
 ```{r}
-prop.test(x = sum(my_data$school == "East"),
+prop.test(x = sum(my_data$building == "Single-family"),
           n = nrow(my_data))
 ```
 
@@ -322,7 +316,7 @@ Here, I'll visualize the distribution of a variable in my dataset called
 
 ```{r}
 ggplot(my_data) +
-  geom_histogram(aes(x = price),
+  geom_histogram(aes(x = `sales-price`),
                  bins = 40) +
   theme_linedraw()
 ```
@@ -360,7 +354,7 @@ overplotting.
 
 ```{r}
 ggplot(my_data) +
-  geom_jitter(aes(x = price, y = 0),
+  geom_jitter(aes(x = `sales-price`, y = 0),
               alpha = 0.1) +
   theme_linedraw() +
   theme(axis.text.y = element_blank(),
@@ -403,7 +397,7 @@ stacked bar chart.
 
 ```{r}
 ggplot(my_data) +
-  geom_bar(aes(fill = school, x = 1),
+  geom_bar(aes(fill = building, x = 1),
            position = "fill") +
   scale_y_continuous(name = "Proportion",
                      breaks = c(0.2,
@@ -427,7 +421,7 @@ ggplot(my_data) +
 
 ```{r}
 ggplot(my_data) +
-  geom_bar(aes(x = school)) +
+  geom_bar(aes(x = building)) +
   scale_y_continuous(breaks = breaks <- c(2000, 4000, 6000),
                      labels = paste0(100*breaks / nrow(my_data), "%"),
                      name = "Percentage") +
@@ -438,26 +432,22 @@ You can also calculate the proportions and their confidence intervals
 and make a little table for them like this.
 
 ```{r}
-prop_summary <-my_data |>
-  mutate(school_east = school == "East",
-         school_edgerly = school == "Edgerly",
-         school_healey = school == "Healey",
-         school_kennedy = school == "Kennedy",
-         school_west = school == "West") |>
-  select(school_east, 
-         school_edgerly, 
-         school_healey,
-         school_kennedy,
-         school_west) |>
+prop_summary <- my_data |>
+  mutate(single_family = building == "Single-family",
+         duplex = building == "Duplex",
+         three_plus = building == "Three-plus") |>
+  select(single_family, 
+         duplex, 
+         three_plus) |>
   pivot_longer(cols = everything(),
-               names_to = "which_school",
-               values_to = "is_school") |>
-  group_by(which_school) |>
-  summarise(Proportion = mean(is_school),
-            `C.I. Low` = prop.test(x = sum(is_school==1),
+               names_to = "which_building",
+               values_to = "is_type") |>
+  group_by(which_building) |>
+  summarise(Proportion = mean(is_type),
+            `C.I. Low` = prop.test(x = sum(is_type==1),
                                    n = n(), 
                                    conf.level = 0.95)$conf.int[1],
-            `C.I. High` = prop.test(x = sum(is_school==1),
+            `C.I. High` = prop.test(x = sum(is_type==1),
                                    n = n(), 
                                    conf.level = 0.95)$conf.int[2])
 
@@ -468,7 +458,7 @@ And then we can use that to make a bar chart with error bars
 
 ```{r}
 ggplot(prop_summary,
-       aes(x = which_school,
+       aes(x = which_building,
            y = Proportion)) +
   geom_bar(stat = "identity") +
   geom_errorbar(aes(ymin = `C.I. Low`,
@@ -476,4 +466,97 @@ ggplot(prop_summary,
   theme_linedraw()
 ```
 
+### Excel
+
+In Excel, if you set up a little table with the proportions and margins of error
+like this:
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "prop-test-setup.png") |>
+  knitr::include_graphics()
+```
+
+
+You can create a bar chart like this:
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "bar-plot.gif") |>
+  knitr::include_graphics()
+```
+
+
+And add error bars like this:
+
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "error-bars.gif") |>
+  knitr::include_graphics()
+```
+
+## A little shortcut
+
+You can download a couple of helpful R functions here:
+https://github.com/c-voulgaris/GSD-SES-5215-F24/blob/main/sample%20assignments/descriptive%20statistics/helpers.R
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "github-download.png") |>
+  knitr::include_graphics()
+```
+
+Save it to your project folder and add this line of code to the top of your
+script (or RMarkdown or Quarto file), right after where you load all your
+libraries. Use the `here()` function to indicate where in your project folder
+you have saved the `helpers.R` script
+
+```{r}
+here("sample assignments",
+     "descriptive statistics",
+     "helpers.R") |>
+  source()
+```
+
+Now you have two functions you can use:
+
+`descriptive_histogram` will generate a histogram with the labels for 
+descriptive statistics. You need to specify the variable, labels for the x an y
+axes, and the number of decimal places you want to include on all numbers.
+
+```{r, warning=FALSE, message=FALSE}
+distance_histogram <- descriptive_histogram(my_data$city_dist,
+                                         label_x = "city_dist",
+                                         label_y = "Number of home sales",
+                                         decimal_places = 2)
+
+distance_histogram
+```
+
+You can optionally display the histogram with a log-transformed x-axis.
+
+```{r, warning=FALSE, message=FALSE}
+distance_histogram <- descriptive_histogram(my_data$city_dist,
+                                         label_x = "city_dist",
+                                         label_y = "Number of home sales",
+                                         decimal_places = 2,
+                                         is_log = TRUE)
+
+distance_histogram
+```
+
+`descriptive_cat_bars` will give you a bar chart with error bars and labels.
+
+```{r, warning=FALSE, message=FALSE}
+type_plot <- descriptive_cat_bars(my_data$building,
+                                  x_label = "Type of building",
+                                  y_label = "Proportion of homes")
+
+type_plot
+```
 
