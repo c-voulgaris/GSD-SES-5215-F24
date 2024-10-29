@@ -542,7 +542,7 @@ You can optionally display the histogram with a log-transformed x-axis.
 
 ```{r, warning=FALSE, message=FALSE}
 distance_histogram <- descriptive_histogram(my_data$city_dist,
-                                         label_x = "city_dist",
+                                         label_x = "Distance from city (miles)",
                                          label_y = "Number of home sales",
                                          decimal_places = 2,
                                          is_log = TRUE)
