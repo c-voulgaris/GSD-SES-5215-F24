@@ -421,7 +421,6 @@ There is not an easy way to log-transform the numeric axis.
 You would need to create a log-transformed version of the variable.
 
 
-
 # Estimating regression models
 
 A linear regression model will estimate the equation of a line that predicts
