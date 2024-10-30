@@ -453,6 +453,9 @@ lm(`sales-price` ~ city_dist + sch_quality + rooms + building,
   summary()
 ```
 
+In this case, the R-squared value indicates the proportion of the variation in 
+the outcome that the model explains.
+
 ## Excel
 
 In Excel, you can use the `=LINEST()` function to estimate a regression model.
