@@ -302,6 +302,126 @@ here("skills",
   knitr::include_graphics()
 ```
 
+## Box and whisker plots and violin plots
+
+A couple of other plots that can summarizes differences in a continuous variable
+among categories are violin plots and box-and-whisker plots (also called box
+plots).
+
+A box plot shows a rectangle representing the interquartile range for each 
+category, with a bar within it indicating the median value, whiskers showing
+the range of values within two interquartile ranges of the midpoint of the 
+interquartile range, and points representing observations beyond that range
+(outliers).
+
+A violin plot is a nice, somewhat more intuitively interpretable alternative to
+a box plot, although there isn't an easy way to produce one in Excel.
+
+### R
+
+In R, you can make a box plot useing the function `geom_boxplot()`.
+
+```{r}
+ggplot(my_data,
+       aes(x = building,
+           y = `sales-price`)) +
+  geom_boxplot() +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  
+```
+
+It could be helpful to overlay the box plot on a scatter plot. This functions 
+like a trend line in the sense that you can see the actual data along with a
+shape that emphasizes relationships that are not obvious from the scatterplot 
+alone.
+
+```{r}
+ggplot(my_data,
+       aes(x = building,
+           y = `sales-price`)) +
+  geom_jitter(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  geom_boxplot(fill = NA) +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  
+```
+
+A violin plot might be more intuitive than a box plot, and you can create one
+using geom_violin().As a default, a violin plot is just a density curve, where 
+width of the shape is proportional to the number of observations with that 
+value.
+
+```{r}
+ggplot(my_data,
+       aes(x = building,
+           y = `sales-price`)) +
+  geom_jitter(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  geom_violin(fill = NA) +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  
+```
+
+You can also specify that you want to add lines representing the values for 
+specified quantiles. Here is how you would add lines for the 25th, 50th, and
+75th percentile values.
+
+```{r}
+ggplot(my_data,
+       aes(x = building,
+           y = `sales-price`)) +
+  geom_jitter(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  geom_violin(fill = NA,
+              draw_quantiles = c(0.25, 0.5, 0.75)) +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  
+```
+
+### Excel
+
+There isn't an easy way to create a violin plot in Excel, but you can create a
+box-and whisker plot.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "excel-boxplot.gif") |>
+  knitr::include_graphics()
+```
+
+There is not an easy way to log-transform the numeric axis.
+You would need to create a log-transformed version of the variable.
+
+
+
 # Estimating regression models
 
 A linear regression model will estimate the equation of a line that predicts
