@@ -1,0 +1,378 @@
+---
+title: "Skills: Correlations and model fit"
+output: 
+  rmdformats::readthedown:
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A lot of quantitative analysis focuses on determining whether there is a relationship
+between two variables. If two variables are related, we can use the value of
+one to predict the value of the other.
+
+For the R examples on this page, I'll start by loading the data and the packages
+I need.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+
+my_data <- here("datasets",
+     "test.csv") |>
+  read_csv()
+```
+
+
+A quick note about working in Excel. I'm going to put this in bold and all caps
+because it's really important:
+
+**IF YOU OPEN YOUR DATA IN A CSV FILE AND THEN ADD CALCULATIONS AND PLOTS, YOU
+NEED TO SAVE YOUR WORK AS AN Excel (\*.xls or \*,xlsx`).**
+
+# Visualizing relationships
+
+A scatter plot is a sensible way to visualize the relationship between two 
+variables. Box plots and/or violin plots offer an alternative way to visualize
+the relationship between a continuous variable and a categorical variable.
+
+## Scatter plots
+
+Scatter plots are the most literal way to represent your data.
+
+### R
+
+To generate a scatter plot in R, use the `geom_point()` function. Here is how
+I would show the relationship between sales price and distance to the city.
+
+```{r}
+ggplot(my_data,
+       aes(x = city_dist,
+           y = `sales-price`)) +
+  geom_point()
+```
+
+A couple of things I notice about that plot. First of all, for both variables, 
+it looks like there are a lot of lower values and fewer higher values. This 
+might suggest that a log scale on both axes might make it easier to see the
+relationship between these two variables.
+
+I can transform the x or y axis by setting the `transform` parameter in the 
+`scale_x_continous()` or `scale_y_continuous()` functions. While I'm at it, I 
+can also name those axes to be something more descriptive.
+
+```{r}
+ggplot(my_data,
+       aes(x = city_dist,
+           y = `sales-price`)) +
+  geom_point() +
+  scale_x_continuous(name = "Distance to city (miles)",
+                     transform = "log10") +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10") 
+```
+
+One more change I might want to make to the y-axis is to format display of the 
+numbers. This is another thing I can do within the `scale_y_continuous` function.
+
+```{r}
+ggplot(my_data,
+       aes(x = city_dist,
+           y = `sales-price`)) +
+  geom_point() +
+  scale_x_continuous(name = "Distance to city (miles)",
+                     transform = "log10") +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000")) 
+```
+
+Finally, this cloud of points just looks like a big black blob, with lots of 
+points on top of one another. I can get a better sense of what's going on by
+adjusting the point transparency. I would do this by setting the `alpha`
+value within the `geom_point` function. I can also address the overplotting 
+problem by making the points smaller (using the `size` parameter).
+
+While I'm messing around the the appearance of the points, I might change the 
+color as well.
+
+```{r}
+ggplot(my_data,
+       aes(x = city_dist,
+           y = `sales-price`)) +
+  geom_point(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  scale_x_continuous(name = "Distance to city (miles)",
+                     transform = "log10") +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000")) 
+```
+
+### Excel
+
+In Excel, you would create a scatter plot by selecting columns for the two variables
+you want to include (hold down that ctrl or cmd key while clicking on each column
+heading), and then click the picture of a little scatter plot on the Chart section
+of the Insert ribbon.
+
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "scatterplot.gif") |>
+  knitr::include_graphics()
+```
+
+As we say in the R example, both variables, 
+have a lot of lower values and fewer higher values. This 
+might suggest that a log scale on both axes might make it easier to see the
+relationship between these two variables.
+
+You can transform the axis on a scatter plot by opening the "Format axis" 
+panel and checking the box for "Logarithmic scale." You might also want to 
+adjust the minimum value and the value where the alternative axis crosses.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "log-axis.gif") |>
+  knitr::include_graphics()
+```
+
+You can also delete the chart title and add axis labels. To change the way
+the numbers are displayed on the axis, you can just change their display in the
+spreadsheet.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "format-axis.gif") |>
+  knitr::include_graphics()
+```
+
+And you can also change how the points are displayed, which could help with your
+overplotting issues.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "format-points.gif") |>
+  knitr::include_graphics()
+```
+
+## Scatter plots with trend lines
+
+If there is a weak linear relationship between your two variables, adding a 
+linear trend line to your scatter plot can help emphasize that relationship.
+
+### R
+
+In R, you can add a linear trend line using the function `stat_smooth()`, setting
+`method = "lm"`. You can also specify the color of the line and the fill color for
+the confidence interval (both will be blue by default).
+
+```{r}
+ggplot(my_data,
+       aes(x = city_dist,
+           y = `sales-price`)) +
+  geom_point(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  scale_x_continuous(name = "Distance to city (miles)",
+                     transform = "log10") +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  +
+  stat_smooth(method = "lm",
+              color = "brown",
+              fill = "brown")
+```
+
+### Excel
+
+In Excel, you can you can add a linear trend line by clicking the "Add chart
+element" button.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "trendline.gif") |>
+  knitr::include_graphics()
+```
+
+In that example, the trend line doesn't look like a straight line because the 
+y-axis is on a log scale, and the line is referencing the underlying data rather
+than the displayed data. To get to look more like a straight line, you'd actually
+want to select "logarithmic" as the trend line type.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "log-trend.gif") |>
+  knitr::include_graphics()
+```
+
+Note that this trend line in the above example still doesn't look entirely 
+straight. This is because setting the trend line type to "Logarithmic" will 
+account for the log transformation on the x-axis, but not
+on the y-axis. To account for the log-transformation on the y-axis, you'd need
+to actually create a log-transformed version of your variable.
+
+## Scatter plots categories
+
+You can also use a scatter plot to show the relationship between a continuous
+variable and a categorical variable.
+
+### R
+
+In R, you can use `geom_jitter` for a scatter plot where one of the values is 
+categorical.
+
+```{r}
+ggplot(my_data,
+       aes(x = building,
+           y = `sales-price`)) +
+  geom_jitter(alpha = 0.3,
+             size = 0.5,
+             color = "orange") +
+  scale_y_continuous(name = "Sales price",
+                     transform = "log10",
+                     breaks = c(10000,
+                                100000,
+                                1000000),
+                     labels = c("$10,000",
+                                "$100,000",
+                                "$1,000,000"))  
+```
+
+
+### Excel
+
+There isn't an easy way to do this in Excel - you need to manually create a 
+variable to indicate where you want the points to be positioned on the x-axis.
+
+In this example, I'm using an if statement to set the value to 1.0 plus some 
+random variation if the building category is "Single-family", to 2.5 plus some
+random variation if the building category is "Duplex", and to 4.0 plus some random
+variation if the building category is anything else (the remaining value is
+"Three-plus").
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "cat-vals.gif") |>
+  knitr::include_graphics()
+```
+
+Then I can make a scatter plot with this new variable.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "cat-val-plot.gif") |>
+  knitr::include_graphics()
+```
+
+You'll want to turn off the x-axis in this case since the numeric values are 
+meaningless and you can manually add text boxes to indicate the categories.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "cat-val-label.gif") |>
+  knitr::include_graphics()
+```
+
+# Estimating regression models
+
+A linear regression model will estimate the equation of a line that predicts
+the value of your outcome based on the value of a predictor.
+
+## R
+
+In R, you estimate a linear regression model using the function `lm()`.
+`summary()` will display the results of the model. 
+
+You can choose to include only one predictor in your model. Here is how you would
+estimate a model that predicts the value of sales price based on the distance to
+the city.
+
+```{r}
+lm(`sales-price` ~ city_dist,
+   data = my_data) |>
+  summary()
+```
+
+The "Multiple R-squared" value displayed in the second-to-last line is 
+the square of the correlation between the two variables.  
+
+You can also choose to include multiple predictors in your model, including 
+categorical predictors.
+
+```{r}
+lm(`sales-price` ~ city_dist + sch_quality + rooms + building,
+   data = my_data) |>
+  summary()
+```
+
+## Excel
+
+In Excel, you can use the `=LINEST()` function to estimate a regression model.
+
+You should start by setting up the table your regression results will go into.
+The table should have three rows:
+
+* Coefficient
+* Standard error
+* R-squared
+
+And it should have one more column than the number of predictors you are using.
+The names of the columns should be the names of your predictors, in the reverse
+of the order they appear in your spreadsheet (because why not, Excel? Why not?),
+and the last column should be called something like "Constant" or "Intercept".
+
+So, something like this:
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "regress-setup.png") |>
+  knitr::include_graphics()
+```
+
+Now, select the block of cells in that table, and with all of them selected,
+type the `=LINEST() function. The first argument should be your set of outcome,
+the second argument should be the set of predictors, and the next two arguments
+should be "TRUE" (these indicate that you want to return the standard errors and 
+the R-squared value).
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "excel-regression.gif") |>
+  knitr::include_graphics()
+```
+
+The Excel regression method can only handle numeric predictors. To include a 
+categorical predictor, you need to replace the categorical variable with a set 
+of numeric columns of zeros and ones for each category, **except the reference
+category**.
