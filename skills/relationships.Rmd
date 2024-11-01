@@ -498,3 +498,22 @@ The Excel regression method can only handle numeric predictors. To include a
 categorical predictor, you need to replace the categorical variable with a set 
 of numeric columns of zeros and ones for each category, **except the reference
 category**.
+
+Coefficients and their standard errors will be in a column corresponding to each
+variable. The R-squared value for the entire model will be in the first column 
+of the third row of the Excel output (in yellow below). The number of degrees
+of freedom will be in the second column of the fourth row (in orange below).
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "r-square-and-df.png") |>
+  knitr::include_graphics()
+```
+
+To get the t-score for each coefficent, you will divide the coefficient by its 
+standard error. To get the p-value for each coefficient, you will use
+the equation =T.DIST.2T(). with two arguments: the first is the t-score for that
+coefficient (the coefficient divided by its standard error), and the second is 
+the number of degrees of freedom for the overall model (shown in the orange square
+in the figure above).
