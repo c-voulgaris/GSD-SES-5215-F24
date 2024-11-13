@@ -1,0 +1,284 @@
+---
+title: "Skills: Visualizing model results"
+output: 
+  rmdformats::readthedown:
+    toc_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+You can use your model results to generate predictions for hypothetical cases,
+and this can be a useful way to visualize your model results.
+
+# Initial setup
+
+I'll start by loading my data and estimating my preferred model
+
+## R
+
+For the R examples on this page, I'll start by loading the data and the packages
+I need, and by estimating my preferred model and saving it as an model object 
+called `my_model`.
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+
+my_data <- here("datasets",
+     "test.csv") |>
+  read_csv() |>
+  mutate(building = factor(building,
+                           levels = c("Single-family",
+                                      "Duplex",
+                                      "Three-plus")))
+
+my_model <- lm(log2(`sales-price`) ~ building + 
+                                     rooms + 
+                                     sch_quality + 
+                                     log2(city_dist) + 
+                                     sch_quality*building, 
+               data = my_data) 
+
+summary(my_model)
+```
+
+Noticed that I've releveled my categorical variable so that "single-family" 
+comes first (so that it will be used as my reference category). My model 
+includes a base-two log transformation for the outcome (home sale price) and
+one of the predictors (distance to the city). It also includes an interaction
+between school quality and building type.
+
+## Excel
+
+Here are the same model results in Excel:
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "regress-results.png") |>
+  knitr::include_graphics()
+```
+
+
+# Generating a set of hypothetical values
+
+To visualize the relationships in your model, it may be helpful to generate a 
+data set where one continuous predictor varies across its full range, and the 
+others are held at their averages. 
+
+## Generating a sequence of values across a range
+
+You might start by generating a sequence of numbers that covers the full range
+of of your variables.
+
+### R
+
+In my data set, I know that the city distance variable ranges from about a 
+quarter mile to 20 miles, which I can confirm using the `summary()` function.
+
+```{r}
+summary(my_data$city_dist)
+```
+
+So a set of values that covers that full range might start at 0.25 and increase
+in increments of 0.25 until it reaches a value of 20. I can use the `seq()`
+function to generate a set of numbers like this.
+
+```{r}
+vary_dist <- seq(from = 0.25, 
+                 to = 20, 
+                 by = 0.25)
+```
+
+Now I have that set of 80 numbers in a variable called `vary_dist`.
+
+```{r}
+vary_dist
+```
+
+
+### Excel
+
+In Excel, I can just start a column of numbers that in a sequence, and drag the
+bottom left corner of the second cell to repeat that pattern until I reach the 
+maximum value I want.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "sequence.gif") |>
+  knitr::include_graphics()
+```
+
+
+## Creating a dataset
+
+Now you can use that set of varying values as part of a data set where everything
+else isi held constant (perhaps varying the categorical variable as well).
+
+### R
+
+In R, you can use the `tibble()` function to construct a data frame that has your 
+varying values as one column and a constant value in each of the other columns.
+
+```{r}
+vary_dist_single_fam <- tibble(city_dist = vary_dist,
+                               rooms = mean(my_data$rooms),
+                               sch_quality = mean(my_data$sch_quality),
+                               building = "Single-family")
+```
+
+You might want to do this for each of the categories in your categorical variable.
+
+```{r}
+vary_dist_duplex <- tibble(city_dist = vary_dist,
+                               rooms = mean(my_data$rooms),
+                               sch_quality = mean(my_data$sch_quality),
+                               building = "Duplex")
+
+vary_dist_triplex <- tibble(city_dist = vary_dist,
+                               rooms = mean(my_data$rooms),
+                               sch_quality = mean(my_data$sch_quality),
+                               building = "Three-plus")
+```
+
+And then combine them all using the `rbind()` function.
+
+```{r}
+vary_dist_all <- rbind(vary_dist_single_fam,
+                       vary_dist_duplex,
+                       vary_dist_triplex)
+```
+
+
+### Excel
+
+Doing something similar in Excel is fairly straightforward and just involves
+some copying and pasting.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "construct.gif") |>
+  knitr::include_graphics()
+```
+
+# Predict the outcome
+
+Now you want to apply your model to predict the outcome for each of your 
+hypothetical cases.
+
+## R
+
+In R, the `predict()` function is useful for this. You can specify that you want
+an estimate as well as a 96-percent confidence interval
+
+```{r}
+vary_dist_predict <- predict(my_model,
+                             newdata = vary_dist_all,
+                             level = 0.95,
+                             interval = "confidence") |>
+  as_tibble()
+```
+
+Here are the first few rows of the result:
+
+```{r}
+head(vary_dist_predict)
+```
+
+The "fit" column is the predicted value for the outcome. "lwr" and "upr" are the
+lower and upper values for the 95-percent confidence interval, respectively.
+
+You will want to use `cbind()` to attach these predictions to the dataset you
+used to generate them.
+
+```{r}
+vary_dist_predict <- cbind(vary_dist_predict, vary_dist_all)
+```
+
+Now you have the predictors and the predicted outcomes in one place.
+
+```{r}
+head(vary_dist_predict)
+```
+
+In this example, the first few predicted values are all around 17 or so. This seems
+low for a predicted home sale price, right? That's because I log-transformed the
+outcome in my model, so the fitted values are the log of the home sale price. To 
+get predicted home sale prices, I would want to undo that log. Since I used a 
+base-two log, I undo it by taking two raised to the power of the predicted
+value.
+
+```{r}
+vary_dist_predict <- 2^predict(my_model,
+                               newdata = vary_dist_all,
+                               level = 0.95,
+                               interval = "confidence") |>
+  as_tibble() |>
+  cbind(vary_dist_all)
+
+head(vary_dist_predict)
+```
+
+Now my fitted values are in units of dollars.
+
+## Excel
+
+In Excel, you generate a prediction using a formula that refers to your 
+hypothetical observed values and your model coefficients.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "predict.png") |>
+  knitr::include_graphics()
+```
+
+I'm not aware of a simple way to generate confidence intervals for predicted 
+values in Excel, so don't worry about those if you're working in Excel.
+
+# Visualizing predictions
+
+These predictions can make it a little easier to explain your model results, 
+especially when you have included interactions and/or non-linear relationships.
+
+## R
+
+In R, you can use the `geom_line()` function to generate a line graph and, if 
+you want, add `geom_ribbon()` to illustrate the confidence interval.
+
+```{r}
+ggplot(vary_dist_predict) +
+  geom_line(aes(x = city_dist,
+                y = fit,
+                color = building)) +
+  geom_ribbon(aes(x = city_dist,
+                  ymin = lwr,
+                  ymax = upr,
+                  fill = building),
+              alpha = 0.3)
+```
+
+## Excel
+
+In Excel, if you want to show separate predictions for each category, you will 
+need to rearrange your data a little bit.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "arrange.gif") |>
+  knitr::include_graphics()
+```
+
+And then you can create a chart from that rearranged data.
+
+```{r, echo=FALSE, message=FALSE, out.width = '100%'}
+here("skills",
+     "gifs",
+     "predict-chart.gif") |>
+  knitr::include_graphics()
+```
